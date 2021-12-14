@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  monitor:
+    image: 'witnet/node-status-bot'
+    environment:
+      TOKEN: $TOKEN
+      CHANNEL_ID: $CHANNEL_ID
+      POLLING_INTERVAL: $POLLING_INTERVAL
+      TIMEOUT: $TIMETOUT
+      NODE_0_NAME: $NODE_0_NAME
+      NODE_0_HOST: $NODE_0_HOST
+      NODE_1_NAME: $NODE_1_NAME
+      NODE_1_HOST: $NODE_1_HOST
