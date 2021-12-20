@@ -33,40 +33,37 @@ async function main () {
   const clients = nodes.map(
     (nodeInfo: NodeInfo) => new WitnetNodeClient(nodeInfo)
   )
-
   const nodeStatusMonitor = new NodeStatusMonitor(clients, bot)
-
-  // establish node clients connections
-  const connectionPromises = clients.map(async client => await client.connect())
-  await Promise.all(connectionPromises)
-
 
   const onTimeout = (client: WitnetNodeClient, index: number) => {
     nodeStatusMonitor.sendTelegramMessage(
       createMessage(
         client.nodeInfo,
-        'Timeout after '+ process.env.TIMEOUT+'ms',
+        'Timeout or error after '+ process.env.TIMEOUT+'ms',
         MessageType.Error
       )
     )
     setTimeout(() => {
-        clients[index] = new WitnetNodeClient(client.nodeInfo)
-        clients[index].onTimeout(() => onTimeout(client, index))
-
-        nodeStatusMonitor.sendTelegramMessage(
-          createMessage(
-            client.nodeInfo,
-            'Trying to establish connection again ...',
-            MessageType.Error
-          )
+      clients[index] = new WitnetNodeClient(client.nodeInfo)
+      clients[index].onTimeout(() => onTimeout(client, index))
+      clients[index].onError(() => onTimeout(client, index))
+      nodeStatusMonitor.sendTelegramMessage(
+        createMessage(
+          client.nodeInfo,
+          'Trying to establish connection again ...',
+          MessageType.Error
         )
-      }, 10000)
-    }
+      )
+    }, parseInt(process.env.TIMEOUT || '50000'))
+  }
 
-
+  // establish node clients connections
   clients.forEach((client, index) => {
     client.onTimeout(() => onTimeout(client, index))
+    client.onError(() => onTimeout(client, index))
   })
+
+  const connectionPromises = clients.map(async client => await client.connect())
 
   setInterval(async () => {
     try {
@@ -78,4 +75,6 @@ async function main () {
       )
     }
   }, POLLING_INTERVAL)
+
+  await Promise.all(connectionPromises)
 }

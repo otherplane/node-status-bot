@@ -74,12 +74,21 @@ export class WitnetNodeClient {
     return this.callApiMethod('syncStatus')
   }
 
+  public onError(cb: (...args: any[]) => void): void {
+    this.socket.on('error', () => {
+      this.socket.destroy()
+      this.connected = false
+      cb()
+    })
+  }
+
   public onTimeout (cb: (...args: any[]) => void): void {
     this.socket.on('timeout', () => {
-      cb()
-      this.connected = false
-      this.socket.end()
       this.socket.destroy()
+      this.connected = false
+      this.socket.on('end', () => {
+        cb()
+      })
     })
   }
 }
