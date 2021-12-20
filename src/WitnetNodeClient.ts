@@ -12,7 +12,8 @@ export class WitnetNodeClient {
     //TODO: avoid unlimited listeners
     this.socket.setMaxListeners(0)
     this.socket.setTimeout(parseInt(process.env.TIMEOUT || '5000'))
-    this.connected= false
+    console.log('constructor: this.connected = false')
+    this.connected = false
   }
 
   private async callApiMethod (
@@ -30,6 +31,9 @@ export class WitnetNodeClient {
     this.socket.write('\n')
 
     const result = await new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject('Timeout calling api method')
+      }, parseInt(process.env.TIMEOUT || '5000'))
       let content = ''
       const onDataHandler = (chunk: Buffer) => {
         content += chunk.toString()
@@ -48,6 +52,7 @@ export class WitnetNodeClient {
       this.socket.on('data', onDataHandler)
 
       this.socket.on('close', () => {
+        console.log('[callApiMethod]: close event fired')
         this.connected = false
         if (callbackDone) {
           callbackDone(result)
@@ -74,11 +79,19 @@ export class WitnetNodeClient {
     return this.callApiMethod('syncStatus')
   }
 
-  public onTimeout (cb: (...args: any[]) => void): void {
+  public onTimeoutOrError (cb: (...args: any[]) => void): void {
     this.socket.on('timeout', () => {
+      // TODO: Research why always enter here besides the connection was established
+    })
+
+    this.socket.on('error', () => {
       cb()
+      console.log('[onTimeoutOrError]: onError event fired')
       this.connected = false
       this.socket.end()
+      this.socket.on('end', () => {
+        cb()
+      })
       this.socket.destroy()
     })
   }

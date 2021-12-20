@@ -13,39 +13,54 @@ export class NodeStatusMonitor {
   ) {}
 
   public async checkNodeStatus () {
-    const promises = this.witnetNodeClients.map(async witnetNodeClient => {
-      if (!witnetNodeClient.connected) return
-
-      const {
-        nodeInfo: { name }
-      } = witnetNodeClient
-      const { node_state } = await witnetNodeClient.syncStatus()
-
-      if (node_state === this.state[name]) {
-        return
-      }
-
-      if (node_state !== 'Synced') {
-        this.sendTelegramMessage(
-          createMessage(
-            witnetNodeClient.nodeInfo,
-            'is in status ' + node_state,
-            MessageType.Error
-          )
+    const promises = this.witnetNodeClients.map(
+      async (witnetNodeClient, index) => {
+        console.log(
+          '[checkNodeStatus] client connected',
+          JSON.stringify(witnetNodeClient.connected)
         )
-      } else {
-        this.sendTelegramMessage(
-          createMessage(
-            witnetNodeClient.nodeInfo,
-            'is synced',
-            MessageType.Success
+        if (!witnetNodeClient.connected) return
+
+        const {
+          nodeInfo: { name }
+        } = witnetNodeClient
+        let node_state
+        try {
+          node_state = await (await witnetNodeClient.syncStatus()).node_state
+        } catch (error) {
+          console.error('ERROR calling syncstatus', error)
+          throw index
+        }
+
+        if (node_state === this.state[name]) {
+          console.log(
+            '[checkNodeStatus] node_state is the same than previous call',
+            node_state
           )
-        )
+          return
+        }
+
+        if (node_state !== 'Synced') {
+          this.sendTelegramMessage(
+            createMessage(
+              witnetNodeClient.nodeInfo,
+              'is in status ' + node_state,
+              MessageType.Error
+            )
+          )
+        } else {
+          this.sendTelegramMessage(
+            createMessage(
+              witnetNodeClient.nodeInfo,
+              'is synced',
+              MessageType.Success
+            )
+          )
+        }
+
+        this.state[name] = node_state
       }
-
-      this.state[name] = node_state
-    })
-
+    )
     await Promise.all(promises)
 
     return
@@ -55,10 +70,10 @@ export class NodeStatusMonitor {
     try {
       console.log('message', message)
       // if CHANNEL_ID is not found at the beginning will throw an error
-      // return await this.telegramBot.sendMessage(
-      //   process.env.CHANNEL_ID as string,
-      //   message
-      // )
+      return await this.telegramBot.sendMessage(
+        process.env.CHANNEL_ID as string,
+        message
+      )
     } catch (err) {
       console.error(err)
     }
