@@ -1,15 +1,15 @@
-FROM node:16-alpine
+FROM nikolaik/python-nodejs:python3.9-nodejs14
 
+ENV PYTHONUNBUFFERED=1
+
+# Update apt, first
+RUN ["apt", "update"]
+
+COPY / /usr/src/app
 WORKDIR /usr/src/app
 
-COPY package.json ./
+# Install dependencies
+RUN ["pip", "install", "-r", "requirements.txt"]
 
-COPY tsconfig.json ./
-
-COPY src ./src
-
-RUN npm install
-
-RUN npm run build 
-
-CMD [ "node", "./dist/index.js" ]
+# Set the entrypoint
+ENTRYPOINT ["python", "node_status_bot.py"]
