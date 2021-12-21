@@ -87,6 +87,10 @@ def send_sync_status_request(s):
     return data_bytes
 
 def send_message(text):
+    print("Sending message", text)
+    # Disable sending message for testing:
+    #return
+
     token = TOKEN
     chat_id = CHANNEL_ID
 
@@ -114,9 +118,6 @@ def main(args):
         print("Mandatory environment variable CHANNEL_ID is missing")
         return
 
-    print("Initialize telegram bot")
-    # TODO: telegram bot
-
     print("Getting node list")
     nodes = get_node_list()
 
@@ -135,9 +136,9 @@ def main(args):
             else:
                 node["synced"] = synced
                 if synced:
-                    print(create_message(node, f"Synced"))
+                    send_message(create_message(node, f"Synced"))
                 else:
-                    print(create_message(node, f"Not synced :("))
+                    send_message(create_message(node, f"Not synced :("))
         time.sleep(POLLING_INTERVAL / 1000)
 
 if __name__ == '__main__':
